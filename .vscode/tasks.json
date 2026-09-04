@@ -1,0 +1,70 @@
+{
+  // Judges the problem folder that the active editor's file belongs to.
+  // Paths are built from ${fileDirname}, not ${workspaceFolder}, so these keep
+  // working wherever the workspace root happens to sit.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Judge current problem (window)",
+      "detail": "Results in a pop-up window, with runtime and space analysis when accepted",
+      "type": "process",
+      "command": "python",
+      "args": [
+        "${fileDirname}/../practice.py",
+        "${fileDirname}",
+        "--gui"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Judge current problem (terminal)",
+      "detail": "Run the open file's problem against its testcases (LeetCode format)",
+      "type": "process",
+      "command": "python",
+      "args": [
+        "${fileDirname}/../practice.py",
+        "${fileDirname}",
+        "--plain"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Judge current problem (watch)",
+      "detail": "Stay running and re-judge on every save. Ctrl-C in the panel to stop.",
+      "type": "process",
+      "command": "python",
+      "args": [
+        "${fileDirname}/../practice.py",
+        "${fileDirname}",
+        "-w"
+      ],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true,
+        "focus": false,
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}
