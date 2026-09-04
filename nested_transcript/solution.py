@@ -2,17 +2,22 @@ from typing import List, Tuple, Union
 
 def check_transcript(events: List[Tuple[str, int]]) -> Union[str, Tuple[str, int]]:
     opening_stack = []
-    nested_depth = 0
-    for i in events:
-        if i[0] == "open":
-            opening_stack.append(i[1])
-            nested_depth +=1
+    if len(events) == 0:
+        return "valid", 0
+    current_nested_depth = 0
+    for index, item in enumerate(events):
+        if item[0] == "open":
+            opening_stack.append(item[1])
+            #current_nested_depth = max(current_nested_depth, len(opening_stack))
         else:
-            if opening_stack[-1] == i[1]:
-                opening_stack.pop()
+            if not opening_stack:
+                return ("invalid", index)
             else:
-                return ("invalid", i.index())
+                if opening_stack[-1] == item[1]:
+                    opening_stack.pop()
+                else:
+                    return ("invalid", index)
 
     if opening_stack:
         return "incomplete"
-    return ("valid", nested_depth)
+    return ("valid", current_nested_depth)
