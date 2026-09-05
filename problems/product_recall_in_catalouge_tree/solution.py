@@ -12,26 +12,61 @@ class TreeNode:
         self.children.append(child)
 
 
+def _count_recalled(node) -> int:
+    if node.is_leaf:
+        return 1 if node.is_recalled else 0
+    return sum(_count_recalled(child) for child in node.children)
+
+
+def find_best(node, depth, total_recalled):
+    # We need to recursively inspect every child first,
+    # because a deeper valid candidate may exist below us.
+
+    best_node = None
+    best_depth = -1
+    best_safe_count = 0
+
+    recalled_count = 0
+    safe_count = 0
+
+    if node.is_leaf:
+        safe_count = 0 if node.is_recalled else 1
+        recalled_count = 1 if node.is_recalled else 0
+
+    else:
+        for child in node.children:
+            child_recalled, child_safe, child_best, child_depth, child_best_safe = \
+                find_best(child, depth + 1, total_recalled)
+
+            recalled_count += child_recalled
+            safe_count += child_safe
+
+            # Keep the deepest valid candidate found in our children, along
+            # with the safe count *of that candidate's own subtree* - not
+            # child_safe, which is the whole child subtree's safe count and
+            # only matches when the candidate happens to be the child itself.
+            if child_best is not None and child_depth > best_depth:
+                best_node = child_best
+                best_depth = child_depth
+                best_safe_count = child_best_safe
+
+    # Now we know how many recalled products are in THIS subtree.
+    # If that equals the global total, this node contains ALL recalls.
+    if recalled_count == total_recalled:
+        # This node itself is valid.
+        #
+        # Since we are currently at `depth`, compare it against
+        # the best valid node found deeper in the subtree.
+        if depth > best_depth:
+            best_node = node
+            best_depth = depth
+            best_safe_count = safe_count
+
+    return recalled_count, safe_count, best_node, best_depth, best_safe_count
+
+
 def find_recall_node(root: TreeNode) -> Tuple[str, int]:
-    """
-    Find the valid recall node of maximum depth.
+    total_recalled = _count_recalled(root)
+    _, _, best_node, _, best_safe_count = find_best(root, 0, total_recalled)
+    return best_node.label, best_safe_count
 
-    A valid recall node's subtree contains ALL recalled products in the tree.
-    Among all valid nodes, return the one with maximum depth.
-    Also return the count of safe (non-recalled) leaf products in that subtree.
-
-    Args:
-        root: TreeNode representing the root of the catalogue tree
-
-    Returns:
-        Tuple[str, int]: (node_label, safe_product_count)
-        where node_label is the label of the maximum-depth valid recall node
-        and safe_product_count is the number of safe leaves in its subtree
-
-    Time Complexity: O(n) where n is the number of nodes
-    Space Complexity: O(h) where h is the height (recursion stack)
-    """
-
-
-
-    pass

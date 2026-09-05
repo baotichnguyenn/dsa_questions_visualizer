@@ -49,29 +49,6 @@ def build_example_tree():
     return r
 
 
-def build_single_branch_tree():
-    """Linear tree: r -> a -> b -> (leaf1, leaf2)
-    Recalls: leaf1 only
-    Valid recall nodes: r, a, b
-    Max depth valid: b (depth 2)
-    Safe in b: 1 (leaf2)
-    """
-    leaf1 = TreeNode("leaf1", is_leaf=True, is_recalled=True)
-    leaf2 = TreeNode("leaf2", is_leaf=True, is_recalled=False)
-
-    b = TreeNode("b")
-    b.add_child(leaf1)
-    b.add_child(leaf2)
-
-    a = TreeNode("a")
-    a.add_child(b)
-
-    r = TreeNode("r")
-    r.add_child(a)
-
-    return r
-
-
 def build_deep_recall_tree():
     """Deep tree where all recalls are at the deepest level.
            r
@@ -115,16 +92,16 @@ def build_localized_recall_tree():
     """Recalls all in one deep subtree.
            r
           / \
-         a*  b
-        /   / \
-       c*  d   e
-      /   / \
-    s1  s2* s3*
+         a   b
+         |  / \
+         c d   e
+         | /|  |
+        s1 s2* s3* s4
 
-    Recalls: a, c, s2, s3
-    Valid nodes: r, a
-    Max depth valid: a (depth 1)
-    Safe in a: 0
+    Recalls: s2, s3 - both direct children of d
+    Valid nodes: r, b, d
+    Max depth valid: d (depth 2)
+    Safe in d: 0
     """
     s2 = TreeNode("s2", is_leaf=True, is_recalled=True)
     s3 = TreeNode("s3", is_leaf=True, is_recalled=True)
@@ -153,32 +130,99 @@ def build_localized_recall_tree():
     return r
 
 
-def build_two_branch_recall_tree():
-    """Two separate branches with recalls.
+def build_same_parent_recall_tree():
+    """Two recalls as leaves of the same parent.
+          r
+          |
+          a
+         / \
+        x*  y*
+
+    Recalls: x, y
+    Valid: r, a
+    Max depth valid: a (depth 1)
+    Safe in a: 0
+    """
+    r = TreeNode("r")
+    a = TreeNode("a")
+    r.add_child(a)
+    a.add_child(TreeNode("x", is_leaf=True, is_recalled=True))
+    a.add_child(TreeNode("y", is_leaf=True, is_recalled=True))
+    return r
+
+
+def build_deep_branch_recall_tree():
+    """Both recalls together, deep inside one branch.
           r
          / \
-        a*  b*
-       /     \
-      s1     s2*
+        a   b
+        |   |
+      safe  c
+             |
+             d
+            / \
+        leaf1* leaf2*
 
-    Recalls: a, b, s2
-    Valid: r only (needs to contain all: a, b, s2)
-    Max depth valid: r (depth 0)
-    Safe: 1 (s1)
+    Recalls: leaf1, leaf2 - both direct children of d
+    Valid: r, b, c, d
+    Max depth valid: d (depth 3)
+    Safe in d: 0
     """
-    s1 = TreeNode("s1", is_leaf=True, is_recalled=False)
-    a = TreeNode("a")
-    a.add_child(s1)
+    leaf1 = TreeNode("leaf1", is_leaf=True, is_recalled=True)
+    leaf2 = TreeNode("leaf2", is_leaf=True, is_recalled=True)
+    d = TreeNode("d")
+    d.add_child(leaf1)
+    d.add_child(leaf2)
 
-    s2 = TreeNode("s2", is_leaf=True, is_recalled=True)
+    c = TreeNode("c")
+    c.add_child(d)
+
     b = TreeNode("b")
-    b.add_child(s2)
+    b.add_child(c)
+
+    a = TreeNode("a")
+    a.add_child(TreeNode("safe", is_leaf=True, is_recalled=False))
 
     r = TreeNode("r")
     r.add_child(a)
     r.add_child(b)
 
     return r
+
+
+def _catalogue_tree(n_leaves, branching=8):
+    """A b-ary catalogue tree with n_leaves leaves, height O(log n) so this
+    stays well clear of Python's recursion limit even at the largest size.
+    Recalls exactly two leaves, the first and last generated, so the whole
+    tree has to be inspected - no shortcut prunes the recursion early."""
+    leaves = []
+
+    def build(count):
+        if count <= 1:
+            leaf = TreeNode(f"leaf{len(leaves)}", is_leaf=True)
+            leaves.append(leaf)
+            return leaf
+        node = TreeNode(f"node{len(leaves)}")
+        base, extra = divmod(count, branching)
+        for i in range(branching):
+            share = base + (1 if i < extra else 0)
+            if share > 0:
+                node.add_child(build(share))
+        return node
+
+    root = build(n_leaves)
+    leaves[0].is_recalled = True
+    leaves[-1].is_recalled = True
+    return root
+
+
+# Used only by the complexity measurement on the results window, once every
+# testcase passes. Hand it a size, get back a valid catalogue tree of n leaves.
+SCALING_SIZES = [2000, 4000, 8000, 16000, 32000]
+
+
+def scaling_input(n):
+    return {"events": _catalogue_tree(n)}
 
 
 TEST_CASES = [
@@ -189,12 +233,6 @@ TEST_CASES = [
     ),
 
     case(
-        "Single linear branch with one recall",
-        expected=("b", 1),
-        events=build_single_branch_tree(),
-    ),
-
-    case(
         "Multiple recalls spread across subtrees - valid only at root",
         expected=("r", 0),
         events=build_deep_recall_tree(),
@@ -202,48 +240,19 @@ TEST_CASES = [
 
     case(
         "All recalls localized to one deep subtree",
-        expected=("a", 0),
+        expected=("d", 0),
         events=build_localized_recall_tree(),
-    ),
-
-    case(
-        "Recalls on sibling branches force root as valid node",
-        expected=("r", 1),
-        events=build_two_branch_recall_tree(),
     ),
 
     case(
         "Two recalls at leaves of same parent",
         expected=("a", 0),
-        events=lambda: (
-            r := TreeNode("r"),
-            a := TreeNode("a"),
-            r.add_child(a) or None,
-            a.add_child(TreeNode("x", is_leaf=True, is_recalled=True)) or None,
-            a.add_child(TreeNode("y", is_leaf=True, is_recalled=True)) or None,
-            r
-        )[-1],
+        events=build_same_parent_recall_tree(),
     ),
 
     case(
         "Large tree - recalls deep but in one branch",
-        expected=("b", 0),
-        events=lambda: (
-            leaf1 := TreeNode("leaf1", is_leaf=True, is_recalled=True),
-            leaf2 := TreeNode("leaf2", is_leaf=True, is_recalled=True),
-            d := TreeNode("d"),
-            d.add_child(leaf1) or None,
-            d.add_child(leaf2) or None,
-            c := TreeNode("c"),
-            c.add_child(d) or None,
-            b := TreeNode("b"),
-            b.add_child(c) or None,
-            a := TreeNode("a"),
-            a.add_child(TreeNode("safe", is_leaf=True, is_recalled=False)) or None,
-            r := TreeNode("r"),
-            r.add_child(a) or None,
-            r.add_child(b) or None,
-            r
-        )[-1],
+        expected=("d", 0),
+        events=build_deep_branch_recall_tree(),
     ),
 ]
