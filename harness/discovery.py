@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
+PROBLEMS_DIR = ROOT / "problems"
 
 TESTS_NAMES = ("tests.py", "testcases.py")
 QUESTION_GLOBS = ("question*.md", "question*.MD", "README.md", "*.md", "*.MD")
@@ -50,7 +51,9 @@ def _is_problem(path: Path) -> bool:
     return (path / "solution.py").exists()
 
 
-def discover(root: Path = ROOT) -> List[Problem]:
+def discover(root: Path = PROBLEMS_DIR) -> List[Problem]:
+    if not root.is_dir():
+        return []
     return [
         Problem(slug=p.name, path=p)
         for p in sorted(root.iterdir(), key=lambda q: q.name.lower())
@@ -78,7 +81,7 @@ def _as_directory(target: str) -> Optional[Path]:
     return None
 
 
-def find(target: str, root: Path = ROOT) -> Optional[Problem]:
+def find(target: str, root: Path = PROBLEMS_DIR) -> Optional[Problem]:
     """Look a problem up by slug, or by any path pointing into its folder.
 
     Accepts 'nested_transcript', a tab-completed 'nested_transcript/', '.', an

@@ -1,16 +1,16 @@
 {
   // Judges the problem folder that the active editor's file belongs to.
-  // Paths are built from ${fileDirname}, not ${workspaceFolder}, so these keep
-  // working wherever the workspace root happens to sit.
+  // Paths are built from ${workspaceFolder}/practice.py so these keep working
+  // no matter how deep a problem folder is nested (e.g. problems/<slug>/).
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Judge current problem (window)",
-      "detail": "Results in a pop-up window, with runtime and space analysis when accepted",
+      "label": "Judge current problem (browser)",
+      "detail": "Results in the local web dashboard, with runtime and space analysis when accepted",
       "type": "process",
       "command": "python",
       "args": [
-        "${fileDirname}/../practice.py",
+        "${workspaceFolder}/practice.py",
         "${fileDirname}",
         "--gui"
       ],
@@ -33,7 +33,7 @@
       "type": "process",
       "command": "python",
       "args": [
-        "${fileDirname}/../practice.py",
+        "${workspaceFolder}/practice.py",
         "${fileDirname}",
         "--plain"
       ],
@@ -52,7 +52,7 @@
       "type": "process",
       "command": "python",
       "args": [
-        "${fileDirname}/../practice.py",
+        "${workspaceFolder}/practice.py",
         "${fileDirname}",
         "-w"
       ],

@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 from . import theme as T
-from .discovery import ROOT
+from .discovery import PROBLEMS_DIR, ROOT
 
 TEMPLATE = ROOT / "_template"
 
@@ -16,7 +16,7 @@ def slugify(name: str) -> str:
     return slug or "new_problem"
 
 
-def create(name: str, root: Path = ROOT) -> Path:
+def create(name: str, root: Path = PROBLEMS_DIR) -> Path:
     slug = slugify(name)
     target = root / slug
     if target.exists():
@@ -24,7 +24,8 @@ def create(name: str, root: Path = ROOT) -> Path:
     if not TEMPLATE.exists():
         raise FileNotFoundError(f"Template folder missing: {TEMPLATE}")
 
-    shutil.copytree(TEMPLATE, target)
+    root.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(TEMPLATE, target, ignore=shutil.ignore_patterns("__pycache__"))
     title = slug.replace("_", " ").title()
     for path in target.rglob("*"):
         if path.is_file() and path.suffix.lower() in (".py", ".md"):
@@ -44,16 +45,18 @@ def announce(target: Path) -> None:
         ("question.md", "paste the problem statement here"),
         ("solution.py", "write your solution here"),
         ("tests.py", "add testcases here (ENTRY_POINT + TEST_CASES)"),
-        ("judge.py", "run this to judge this problem"),
-        ("test_algorithm.py", "pytest adapter, no edits needed"),
-        ("conftest.py", "import paths for pytest, no edits needed"),
+        ("judge.py", "run this to judge this problem, no edits needed"),
     ):
         print("    " + T.paint(filename.ljust(20), T.WHITE) + T.paint(purpose, T.MUTED))
+    print()
+    print("  " + T.paint(
+        "pytest picks it up too - test_problems.py at the practice root covers "
+        "every problem, nothing to add here.", T.MUTED))
     print()
     print("  " + T.paint("Judge it with any of:", T.MUTED))
     print("    " + T.paint(f"python practice.py {target.name}", T.WHITE)
           + T.paint("   from here", T.MUTED))
-    print("    " + T.paint(f"cd {target.name} && python judge.py", T.WHITE)
+    print("    " + T.paint(f"cd problems/{target.name} && python judge.py", T.WHITE)
           + T.paint("   from the folder", T.MUTED))
     print("    " + T.paint("Ctrl+Shift+B", T.WHITE)
           + T.paint("   in VSCode, with one of its files open", T.MUTED))

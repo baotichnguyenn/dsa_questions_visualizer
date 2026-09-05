@@ -105,7 +105,7 @@ def problem_screen(problem: Problem) -> None:
     show_all = False
     run_once(problem, show_all=show_all)
     while True:
-        choice = prompt("enter re-run   g window   a all failures   "
+        choice = prompt("enter re-run   g browser   a all failures   "
                         "d description   w watch   b back   q quit").lower()
         if choice in ("q", "quit", "exit"):
             raise SystemExit(0)
@@ -115,9 +115,9 @@ def problem_screen(problem: Problem) -> None:
             show_question(problem)
             run_once(problem, show_all=show_all)
             continue
-        if choice in ("g", "gui", "window"):
-            from . import gui
-            gui.launch(problem, timeout=DEFAULT_TIMEOUT)
+        if choice in ("g", "gui", "window", "browser"):
+            from . import web
+            web.launch(focus_slug=problem.slug, timeout=DEFAULT_TIMEOUT, auto_run=True)
             run_once(problem, show_all=show_all)
             continue
         if choice in ("a", "all"):
@@ -157,13 +157,17 @@ def loop() -> None:
         problems = discover()
         banner()
         problem_table(problems)
-        options = "number run   n new problem   r refresh   q quit"
+        options = "number run   n new problem   w web dashboard   r refresh   q quit"
         choice = prompt(options).lower()
         if choice in ("q", "quit", "exit"):
             print()
             return
         if choice in ("n", "new"):
             new_problem()
+            continue
+        if choice in ("w", "web"):
+            from . import web
+            web.launch()
             continue
         if choice in ("r", "refresh", ""):
             continue

@@ -12,7 +12,11 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent))
+
+ROOT = HERE.parent
+while not (ROOT / "practice.py").is_file() and ROOT != ROOT.parent:
+    ROOT = ROOT.parent
+sys.path.insert(0, str(ROOT))
 
 from practice import main  # noqa: E402
 

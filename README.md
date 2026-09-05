@@ -8,29 +8,42 @@ of testcases and reports the result in LeetCode's submission format.
 Three ways, pick whichever is closest to hand.
 
 **In VSCode** - with any file of the problem open, press `Ctrl+Shift+B`. That
-judges the problem the open file belongs to and shows the results in a window.
-Terminal -> Run Task has the other two: *(terminal)* and *(watch)*.
+judges the problem the open file belongs to and shows the results in the
+browser dashboard. Terminal -> Run Task has the other two: *(terminal)* and
+*(watch)*.
 
 > Needs `Code Practice` open as your workspace folder, since that is where
-> `.vscode/` lives. If you open a folder above it instead, move `.vscode/` into
-> that folder - the tasks resolve everything from the open file, so they keep
-> working unchanged.
+> `.vscode/` lives.
 
 **From inside a problem folder:**
 
 ```
-cd nested_transcript
+cd problems/nested_transcript
 python judge.py         # judge once, in the terminal
-python judge.py -g      # judge once, in a pop-up window
+python judge.py -g      # judge once, in the browser dashboard
 python judge.py -w      # re-judge every time you hit save
 python judge.py -a      # a detail panel for every failure
 ```
 
-## The results window
+## The web dashboard
 
-`-g` / `--gui` puts the same result in a scrollable window instead of the
-terminal. `F5` re-runs, `Esc` closes, *Copy report* puts the whole thing on the
-clipboard as plain text.
+```
+python practice.py web                     # every problem, one page
+python practice.py web nested_transcript   # jump straight to one
+```
+
+Opens `http://127.0.0.1:<port>/` in your default browser: a card grid of
+every problem in `problems/`, filterable by name. Click a card to see its
+question and solution side by side, then hit **Run** to judge it without
+leaving the browser.
+
+It's a single page served straight out of the Python standard library -
+no npm, no build step, no third-party packages, nothing to install. `Ctrl-C`
+in the terminal that launched it stops the server.
+
+`-g` / `--gui` on a single problem opens the same dashboard already focused on
+that problem, and judges it immediately - the direct replacement for the old
+tkinter pop-up window.
 
 - **Not accepted** - every failing case is listed, then laid out in full:
   Input, Stdout, your Output, and Expected. All of them, in one scroll.
@@ -54,12 +67,13 @@ def scaling_input(n):
     return {"events": _balanced(n // 2)}
 ```
 
-Without it the window still shows runtime and memory, just not the scaling.
+Without it the dashboard still shows runtime and memory, just not the scaling.
 
 **From this folder:**
 
 ```
 python practice.py                      # interactive menu
+python practice.py web                  # the browser dashboard, every problem
 python practice.py nested_transcript    # judge one problem and exit
 python practice.py nested_transcript -w # re-judge every time you hit save
 python practice.py nested_transcript -a # a detail panel for every failure
@@ -68,14 +82,17 @@ python practice.py new "two sum"        # scaffold a new problem folder
 ```
 
 The problem argument takes a name or any path pointing into the folder, so
-tab-completion (`nested_transcript/`), `.`, and full paths all work.
+tab-completion (`problems/nested_transcript/`), `.`, and full paths all work.
 
 Exit code is `0` on Accepted, `1` otherwise, so it drops into a shell loop or a
 pre-commit hook if you ever want that.
 
-Inside the menu: a number runs that problem, then `enter` re-runs, `a` toggles
-all failure panels, `d` shows the question, `w` watches for saves, `b` goes
-back, `q` quits.
+At the top level: a number runs that problem, `n` scaffolds a new one, `w`
+opens the browser dashboard, `r` refreshes the list, `q` quits.
+
+Inside a problem: `enter` re-runs, `a` toggles all failure panels, `d` shows
+the question, `g` opens the browser dashboard focused on this problem, `w`
+watches for saves, `b` goes back, `q` quits.
 
 ## Verdicts
 
@@ -95,22 +112,30 @@ that case gets a detail panel unless you pass `-a`.
 
 ```
 Code Practice/
-  practice.py            the command you run
-  pytest.ini             lets pytest run from here across every problem
-  .vscode/tasks.json     the Ctrl+Shift+B binding
-  harness/               the judge - you never need to edit this
-  _template/             what `practice.py new` copies
-  nested_transcript/     one problem
-    questions.MD           the problem statement
-    solution.py            your code
-    tests.py               the testcases
-    judge.py               judges this problem, run from in here
-    test_algorithm.py      pytest adapter over the same testcases
-    conftest.py            import paths for pytest
+  practice.py             the command you run
+  conftest.py             import paths for pytest - one copy, covers every problem
+  test_problems.py        pytest view of every problem's testcases, generated
+  pytest.ini              lets pytest run from here across every problem
+  .vscode/tasks.json      the Ctrl+Shift+B binding
+  harness/                the judge and the web dashboard - you never need to edit this
+  _template/              what `practice.py new` copies
+  problems/               every problem lives here
+    nested_transcript/      one problem
+      questions.MD            the problem statement
+      solution.py             your code
+      tests.py                the testcases
+      judge.py                judges this problem, run from in here - never edited
+    product_recall_in_catalouge_tree/  another problem, same shape
 ```
 
-Any folder here containing a `solution.py` is picked up as a problem. Add as
-many as you like; `harness/` and `_template/` are skipped.
+Any folder inside `problems/` containing a `solution.py` is picked up as a
+problem. Add as many as you like.
+
+Everything pytest and `judge.py` need to run - import paths, the pytest
+adapter - lives once at the practice root instead of copied into every
+problem folder, so a problem folder holds only the four files that are
+actually about that problem: the question, the solution, the testcases, and
+the one-line launcher.
 
 ## Adding a problem
 
@@ -159,21 +184,20 @@ case(
 
 ## pytest
 
-Every problem also works as a normal pytest suite over the exact same cases:
+Every problem also works as a normal pytest suite over the exact same cases,
+from the practice root:
 
 ```
-cd nested_transcript
-python -m pytest test_algorithm.py -q     # one problem
+python -m pytest -q                       # every problem
+python -m pytest -q -k nested_transcript  # one problem, by slug
 ```
 
-or every problem at once, from the practice root:
-
-```
-python -m pytest -q
-```
-
-`test_algorithm.py` and `conftest.py` are generated - there is nothing to edit
-in them. Add testcases in `tests.py` and both the judge and pytest pick them up.
+`test_problems.py` discovers every problem under `problems/` and generates
+one pytest case per testcase, id'd `<slug>::<case name>` - there is nothing to
+add per problem. Add testcases in a problem's `tests.py` and both the judge
+and pytest pick them up. A problem whose `solution.py` or `tests.py` won't
+even import shows up as a single failing `<slug>::<load error>` case instead
+of breaking collection for every other problem.
 
 ## Notes
 

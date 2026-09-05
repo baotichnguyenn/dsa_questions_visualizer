@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""DSA practice judge - LeetCode-style results, in a window or in the terminal.
+"""DSA practice judge - LeetCode-style results, in a browser or in the terminal.
 
     python practice.py                     interactive menu
+    python practice.py web                 open the dashboard - every problem, one page
     python practice.py nested_transcript   judge one problem
-    python practice.py nested_transcript -g  results in a pop-up window
+    python practice.py nested_transcript -g  results in the browser dashboard
     python practice.py nested_transcript -w  re-judge on every save
     python practice.py list                list problems
     python practice.py new "two sum"       scaffold a new problem folder
@@ -47,6 +48,20 @@ def cmd_list() -> int:
     return 0
 
 
+def cmd_web(slug: str | None) -> int:
+    focus = None
+    if slug:
+        problem = find(slug)
+        if problem is None:
+            print()
+            print("  " + T.paint(f"{T.CROSS} No problem matching '{slug}'.", T.RED))
+            print()
+            return 2
+        focus = problem.slug
+    from harness import web
+    return web.launch(focus_slug=focus)
+
+
 def cmd_new(name: str) -> int:
     try:
         target = scaffold.create(name)
@@ -69,8 +84,8 @@ def cmd_run(slug: str, args: argparse.Namespace) -> int:
         print()
         return 2
     if args.gui:
-        from harness import gui
-        return gui.launch(problem, timeout=args.timeout)
+        from harness import web
+        return web.launch(focus_slug=problem.slug, timeout=args.timeout, auto_run=True)
     if args.watch:
         menu.watch(problem, show_all=args.all, timeout=args.timeout)
         return 0
@@ -87,10 +102,11 @@ def main(argv=None) -> int:
         epilog=__doc__,
     )
     parser.add_argument("target", nargs="?",
-                        help="problem folder, or 'list' / 'new'")
-    parser.add_argument("name", nargs="?", help="name for 'new'")
+                        help="problem folder, or 'list' / 'new' / 'web'")
+    parser.add_argument("name", nargs="?",
+                        help="name for 'new', or a problem to focus for 'web'")
     parser.add_argument("-g", "--gui", action="store_true",
-                        help="show the results in a pop-up window instead")
+                        help="show the results in the browser dashboard instead")
     parser.add_argument("-a", "--all", action="store_true",
                         help="show a detail panel for every failing case")
     parser.add_argument("-w", "--watch", action="store_true",
@@ -106,6 +122,8 @@ def main(argv=None) -> int:
         return 0
     if args.target == "list":
         return cmd_list()
+    if args.target == "web":
+        return cmd_web(args.name)
     if args.target == "new":
         if not args.name:
             print()
